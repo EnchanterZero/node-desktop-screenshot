@@ -41,10 +41,13 @@ function Screenshot(args) {
 }
 
 Screenshot.prototype.processImage = function(input, output, options, callback) {
-	if(typeof options.width !== "number" && typeof  options.height !== "number" && typeof options.quality !== "number") // no processing required
+	if(typeof options.width !== "number" && typeof  options.height !== "number" && typeof options.quality !== "number" &&
+     typeof options.x !== "number" && typeof  options.y !== "number" && typeof options.w !== "number" && typeof options.h !== "number"
+  ) // no processing required
 		callback(null);
 	else {
 		new jimp(input, function (err, image) {
+      var needResize = true;
 			if(typeof options.width === "number")
 				var resWidth = Math.floor(options.width);
 			if(typeof options.height === "number")
@@ -54,12 +57,37 @@ Screenshot.prototype.processImage = function(input, output, options, callback) {
 				var resHeight = Math.floor(image.bitmap.height * (resWidth / image.bitmap.width));
 			else if(typeof resHeight === "number" && typeof resWidth !== "number") // resize to height, maintain aspect ratio
 				var resWidth = Math.floor(image.bitmap.width * (resHeight / image.bitmap.height));
+      else if(typeof resHeight !== "number" && typeof resWidth !== "number") {
+        var resHeight = image.bitmap.height;
+        var resWidth = image.bitmap.width;
+        needResize = false;
+      }
+
+      if(typeof options.x === "number")
+        var resX = Math.floor(options.x);
+      else
+        var resX = 0;
+      if(typeof options.y === "number")
+        var resY = Math.floor(options.y);
+      else
+        var resY = 0;
+      if(typeof options.w === "number" && options.w < resWidth - resX)
+        var resW = Math.floor(options.w);
+      else
+        var resW = resWidth - resX;
+      if(typeof options.h === "number" && options.h < resHeight - resY)
+        var resH = Math.floor(options.w);
+      else
+        var resH = resHeight - resY;
 
 			try {
-				image.resize(resWidth, resHeight);
+        if(needResize)
+				  image.resize(resWidth, resHeight);
+        image.crop(resX,resY,resW,resH);
 
 				if(typeof options.quality === "number" && options.quality >= 0 && options.quality <= 100)
 					image.quality(Math.floor(options.quality)); // only works with JPEGs
+
 
 				image.write(output, callback);
 			}
